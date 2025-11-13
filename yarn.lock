@@ -3596,9 +3596,9 @@ semver@^6.3.0:
   integrity sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==
 
 semver@^7.3.2, semver@^7.3.4, semver@^7.6.1:
-  version "7.6.1"
-  resolved "https://registry.npmjs.org/semver/-/semver-7.6.1.tgz"
-  integrity sha512-f/vbBsu+fOiYt+lmwZV0rVwJScl46HppnOA1ZvIuBWKOTlllpyJ3bfVax76/OrhCH38dyxoDIA8K7uB963IYgA==
+  version "7.7.3"
+  resolved "https://registry.npmjs.org/semver/-/semver-7.7.3.tgz"
+  integrity sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==
 
 semver@7.0.0:
   version "7.0.0"
@@ -4088,10 +4088,10 @@ vscode-jsonrpc@8.2.0:
   resolved "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-8.2.0.tgz"
   integrity sha512-C+r0eKJUIfiDIfwJhria30+TYWPtuHJXHtI7J0YlOmKAo7ogxP20T0zxB7HZQIFhIyvoBPwWskjxrvAtfjyZfA==
 
-vscode-jsonrpc@9.0.0-next.2:
-  version "9.0.0-next.2"
-  resolved "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-9.0.0-next.2.tgz"
-  integrity sha512-meIaXAgChCHzWy45QGU8YpCNyqnZQ/sYeCj32OLDDbUYsCF7AvgpdXx3nnZn9yzr8ed0Od9bW+NGphEmXsqvIQ==
+vscode-jsonrpc@9.0.0-next.9:
+  version "9.0.0-next.9"
+  resolved "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-9.0.0-next.9.tgz"
+  integrity sha512-IM/RHL7ZklEUh1N2Rh4OjRL6D9MyIXq3v+zIkPLXq74hM1eW7WRLP0/cjzNu/baRFC00sFxJm95RBKsT8dXzRQ==
 
 vscode-languageserver-protocol@^3.17.1:
   version "3.17.5"
@@ -4101,13 +4101,13 @@ vscode-languageserver-protocol@^3.17.1:
     vscode-jsonrpc "8.2.0"
     vscode-languageserver-types "3.17.5"
 
-vscode-languageserver-protocol@3.17.6-next.4:
-  version "3.17.6-next.4"
-  resolved "https://registry.npmjs.org/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.17.6-next.4.tgz"
-  integrity sha512-/2bleKBxZLyRObS4mkpaWlVI9xGiUqMVmh/ztZ2vL4uP2XyIpraT45JBpn9AtXr0alqKJPKLuKr+/qcYULvm/w==
+vscode-languageserver-protocol@3.17.6-next.14:
+  version "3.17.6-next.14"
+  resolved "https://registry.npmjs.org/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.17.6-next.14.tgz"
+  integrity sha512-0VD83wxN5kI9vgeaIDQnAxgrbZfKiFNIxdFY5LKe3SZdZd+LAJLMrklSrwfefS7hEzaHw6Z++VFdVJJU+gh1Zg==
   dependencies:
-    vscode-jsonrpc "9.0.0-next.2"
-    vscode-languageserver-types "3.17.6-next.3"
+    vscode-jsonrpc "9.0.0-next.9"
+    vscode-languageserver-types "3.17.6-next.6"
 
 vscode-languageserver-textdocument@^1.0.11:
   version "1.0.11"
@@ -4119,17 +4119,17 @@ vscode-languageserver-types@^3.17.5, vscode-languageserver-types@3.17.5:
   resolved "https://registry.npmjs.org/vscode-languageserver-types/-/vscode-languageserver-types-3.17.5.tgz"
   integrity sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg==
 
-vscode-languageserver-types@3.17.6-next.3:
-  version "3.17.6-next.3"
-  resolved "https://registry.npmjs.org/vscode-languageserver-types/-/vscode-languageserver-types-3.17.6-next.3.tgz"
-  integrity sha512-l5kNFXFRQGuzriXpuBqFpRmkf6f6A4VoU3h95OsVkqIOoi1k7KbwSo600cIdsKSJWrPg/+vX+QMPcMw1oI7ItA==
+vscode-languageserver-types@3.17.6-next.6:
+  version "3.17.6-next.6"
+  resolved "https://registry.npmjs.org/vscode-languageserver-types/-/vscode-languageserver-types-3.17.6-next.6.tgz"
+  integrity sha512-aiJY5/yW+xzw7KPNlwi3gQtddq/3EIn5z8X8nCgJfaiAij2R1APKePngv+MUdLdYJBVTLu+Qa0ODsT+pHgYguQ==
 
-vscode-languageserver@^10.0.0-next.3:
-  version "10.0.0-next.3"
-  resolved "https://registry.npmjs.org/vscode-languageserver/-/vscode-languageserver-10.0.0-next.3.tgz"
-  integrity sha512-4x1qHImf6ePji4+8PX43lnBCBfBNdi2jneGX2k5FswJhx/cxaYYmusShmmtO/clyL1iurxJacrQoXfw9+ikhvg==
+vscode-languageserver@^10.0.0-next.13:
+  version "10.0.0-next.14"
+  resolved "https://registry.npmjs.org/vscode-languageserver/-/vscode-languageserver-10.0.0-next.14.tgz"
+  integrity sha512-1TqBDfRLlAIPs6MR5ISI8z7sWlvGL3oHGm9GAHLNOmBZ2+9pmw0yR9vB44/SYuU4bSizxU24tXDFW+rw9jek4A==
   dependencies:
-    vscode-languageserver-protocol "3.17.6-next.4"
+    vscode-languageserver-protocol "3.17.6-next.14"
 
 vscode-markdown-languageservice@^0.5.0-alpha.6:
   version "0.5.0-alpha.6"

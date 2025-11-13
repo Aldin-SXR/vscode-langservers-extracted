@@ -7,7 +7,7 @@ import {
 	Connection, TextDocuments, InitializeParams, InitializeResult, RequestType,
 	DocumentRangeFormattingRequest, Disposable, ServerCapabilities,
 	ConfigurationRequest, ConfigurationParams, DidChangeWorkspaceFoldersNotification,
-	DocumentColorRequest, ColorPresentationRequest, TextDocumentSyncKind, NotificationType, RequestType0, DocumentFormattingRequest, FormattingOptions, TextEdit
+	DocumentColorRequest, ColorPresentationRequest, TextDocumentSyncKind, NotificationType, RequestType0, DocumentFormattingRequest, FormattingOptions, TextEdit, TextDocumentContentRequest
 } from 'vscode-languageserver';
 import {
 	getLanguageModes, LanguageModes, Settings, TextDocument, Position, Diagnostic, WorkspaceFolder, ColorInformation,
@@ -586,17 +586,17 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		});
 	});
 
-	// connection.onRequest(TextDocumentContentRequest.type, (params, token) => {
-	// 	return runSafe(runtime, async () => {
-	// 		for (const languageMode of languageModes.getAllModes()) {
-	// 			const content = await languageMode.getTextDocumentContent?.(params.uri);
-	// 			if (content) {
-	// 				return { text: content };
-	// 			}
-	// 		}
-	// 		return null;
-	// 	}, null, `Error while computing text document content for ${params.uri}`, token);
-	// });
+	connection.onRequest(TextDocumentContentRequest.type, (params, token) => {
+		return runSafe(runtime, async () => {
+			for (const languageMode of languageModes.getAllModes()) {
+				const content = await languageMode.getTextDocumentContent?.(params.uri);
+				if (content) {
+					return { text: content };
+				}
+			}
+			return null;
+		}, null, `Error while computing text document content for ${params.uri}`, token);
+	});
 
 	// Listen on the connection
 	connection.listen();
