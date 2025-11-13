@@ -14,10 +14,6 @@ import {
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as htmlService from 'vscode-html-languageservice';
-import {
-  getCSSLanguageService,
-  LanguageService as CSSLanguageService,
-} from 'vscode-css-languageservice';
 import { getEmmetCompletions, VSCodeEmmetConfig } from '../emmet/lspAdapter';
 
 // Create a connection for the server
@@ -28,9 +24,6 @@ const documents = new TextDocuments(TextDocument);
 
 // Create HTML language service
 const htmlLanguageService = htmlService.getLanguageService();
-
-// Create CSS language service for <style> regions
-const cssLanguageService: CSSLanguageService = getCSSLanguageService();
 
 // Emmet configuration
 const emmetConfig: VSCodeEmmetConfig = {
@@ -59,6 +52,8 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
           '$',
           ']',
           '>',
+          '+',  // Sibling combinator (e.g., div+p)
+          '(',  // Grouping (e.g., (div>span)*3)
           '0',
           '1',
           '2',
@@ -91,59 +86,17 @@ connection.onCompletion(async (textDocumentPosition) => {
     return null;
   }
 
-  const position = textDocumentPosition.position;
   const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
-  const offset = document.offsetAt(position);
-  const node = htmlDocument.findNodeAt(offset);
+  const position = textDocumentPosition.position;
 
-  // Helper: are we inside the content between <tag>...</tag> ?
-  const isInsideNodeContent =
-    node &&
-    typeof node.startTagEnd === 'number' &&
-    typeof node.endTagStart === 'number' &&
-    offset >= node.startTagEnd &&
-    offset <= node.endTagStart;
-
-  const tag = node?.tag?.toLowerCase();
-
-  // --- CSS inside <style> ---
-  if (tag === 'style' && isInsideNodeContent) {
-    // Extract only the CSS text between <style> and </style>
-    const cssText = document
-      .getText()
-      .substring(node!.startTagEnd!, node!.endTagStart!);
-
-    // Create a virtual CSS document
-    const cssDocument = TextDocument.create(
-      document.uri + '.css',
-      'css',
-      document.version,
-      cssText
-    );
-
-    // Map current offset into the CSS snippet
-    const cssOffset = offset - node!.startTagEnd!;
-    const cssPosition = cssDocument.positionAt(cssOffset);
-
-    const stylesheet = cssLanguageService.parseStylesheet(cssDocument);
-    return cssLanguageService.doComplete(cssDocument, cssPosition, stylesheet);
-  }
-
-  // --- JavaScript inside <script> ---
-  if (tag === 'script' && isInsideNodeContent) {
-    // Do NOT provide completions here – let your JS/TS tooling handle it
-    // (e.g., Monaco's built-in JS language service).
-    return null;
-  }
-
-  // --- Pure HTML region: HTML completions + Emmet ---
+  // Get HTML completions
   const htmlCompletions = htmlLanguageService.doComplete(
     document,
     position,
     htmlDocument
   );
 
-  // Only run Emmet in HTML (not in <style>/<script>)
+  // Get Emmet completions
   const emmetCompletions = getEmmetCompletions(
     document,
     position,
@@ -151,6 +104,7 @@ connection.onCompletion(async (textDocumentPosition) => {
     emmetConfig
   );
 
+  // Merge completions
   if (emmetCompletions && emmetCompletions.items.length > 0) {
     const mergedItems = [
       ...(htmlCompletions?.items || []),
@@ -219,6 +173,9 @@ connection.onDocumentSymbol((params) => {
   const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   return htmlLanguageService.findDocumentSymbols(document, htmlDocument);
 });
+
+// Note: findDefinition and findReferences are not available in vscode-html-languageservice
+// These features are typically not needed for HTML
 
 // Handle rename requests
 connection.onRenameRequest((params) => {
