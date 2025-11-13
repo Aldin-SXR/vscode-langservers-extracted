@@ -197,7 +197,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			completionProvider: clientSnippetSupport ? {
 				resolveProvider: true,
-				triggerCharacters: ['.', ':', '<', '"', '=', '/', '!', '}', '*', '$', ']', '>', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+				triggerCharacters: ['.', ':', '<', '"', '=', '/', '!', '}', '*', '+', '$', ']', '>', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 			} : undefined,
 			hoverProvider: true,
 			documentHighlightProvider: true,

@@ -160,12 +160,13 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 					entrySource: entry.source,
 					entryData: entry.data
 				};
+				const baseKind = entry.kind ? convertKind(entry.kind) : CompletionItemKind.Property;
 				const item: HTMLServerCompletionItem = {
 					uri: document.uri,
 					position: position,
 					label: entry.name,
 					sortText: entry.sortText,
-					kind: convertKind(entry.kind),
+					kind: baseKind,
 					textEdit: TextEdit.replace(replaceRange, entry.name),
 					data
 				};
@@ -179,6 +180,9 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 						const documentationText = ts.displayPartsToString(details.documentation);
 						if (documentationText) {
 							item.documentation = documentationText;
+						}
+						if (details.kind) {
+							item.kind = convertKind(details.kind);
 						}
 					}
 				}
@@ -201,6 +205,9 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 				if (details) {
 					item.detail = ts.displayPartsToString(details.displayParts);
 					item.documentation = ts.displayPartsToString(details.documentation);
+					if (details.kind) {
+						item.kind = convertKind(details.kind);
+					}
 				}
 				delete item.data;
 			}

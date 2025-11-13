@@ -8,10 +8,9 @@ import type {
   Position,
   CompletionItem,
   CompletionList,
-  CompletionItemKind,
   Range,
 } from 'vscode-languageserver-types';
-import { InsertTextFormat } from 'vscode-languageserver-types';
+import { CompletionItemKind, InsertTextFormat } from 'vscode-languageserver-types';
 
 import { doComplete, type VSCodeEmmetConfig } from './emmetHelper';
 import { isValidLocationForEmmetAbbreviation } from './abbreviationActions';
@@ -219,7 +218,7 @@ function monacoToLspCompletionItem(
 ): CompletionItem {
   const item: CompletionItem = {
     label: monacoItem.label,
-    kind: mapMonacoKindToLsp(monacoItem.kind),
+    kind: CompletionItemKind.Interface,
     detail: monacoItem.detail,
     documentation: monacoItem.documentation,
     insertTextFormat: monacoItem.insertTextRules === 4
@@ -239,15 +238,6 @@ function monacoToLspCompletionItem(
   }
 
   return item;
-}
-
-/**
- * Map Monaco CompletionItemKind to LSP CompletionItemKind
- * Use Interface icon (8) for Emmet completions (wrench icon)
- */
-function mapMonacoKindToLsp(monacoKind: number): CompletionItemKind {
-  // Use Interface icon (8) for Emmet abbreviations (wrench icon in VSCode)
-  return 8 as CompletionItemKind; // CompletionItemKind.Interface
 }
 
 /**
@@ -330,7 +320,7 @@ export function getEmmetCompletions(
     );
 
     return {
-      isIncomplete: true, // Keep re-requesting as user types for dynamic abbreviations
+      isIncomplete: false,
       items,
     };
   } catch (error) {
