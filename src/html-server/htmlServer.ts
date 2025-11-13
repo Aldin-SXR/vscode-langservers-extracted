@@ -11,7 +11,7 @@ import {
 } from 'vscode-languageserver';
 import {
 	getLanguageModes, LanguageModes, Settings, TextDocument, Position, Diagnostic, WorkspaceFolder, ColorInformation,
-	Range, DocumentLink, SymbolInformation, TextDocumentIdentifier, isCompletionItemData
+	Range, DocumentLink, SymbolInformation, TextDocumentIdentifier, isCompletionItemData, FILE_PROTOCOL
 } from './modes/languageModes';
 
 import { format } from './modes/formatting';
@@ -214,6 +214,9 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 				documentSelector: null,
 				interFileDependencies: false,
 				workspaceDiagnostics: false
+			},
+			workspace: {
+				textDocumentContent: { schemes: [FILE_PROTOCOL] }
 			}
 		};
 		return { capabilities };
