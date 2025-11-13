@@ -14,6 +14,10 @@ import {
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as htmlService from 'vscode-html-languageservice';
+import {
+  getCSSLanguageService,
+  LanguageService as CSSLanguageService,
+} from 'vscode-css-languageservice';
 import { getEmmetCompletions, VSCodeEmmetConfig } from '../emmet/lspAdapter';
 
 // Create a connection for the server
@@ -25,42 +29,15 @@ const documents = new TextDocuments(TextDocument);
 // Create HTML language service
 const htmlLanguageService = htmlService.getLanguageService();
 
+// Create CSS language service for <style> regions
+const cssLanguageService: CSSLanguageService = getCSSLanguageService();
+
 // Emmet configuration
 const emmetConfig: VSCodeEmmetConfig = {
   showExpandedAbbreviation: 'always',
   showAbbreviationSuggestions: true,
   showSuggestionsAsSnippets: false,
 };
-
-/**
- * Helper: check if the position is inside the content of a <script> or <style> tag.
- * We only want Emmet in "pure" HTML, not in embedded CSS/JS.
- */
-function isInsideScriptOrStyle(
-  document: TextDocument,
-  position: { line: number; character: number },
-  htmlDocument: htmlService.HTMLDocument
-): boolean {
-  const offset = document.offsetAt(position);
-  const node = htmlDocument.findNodeAt(offset);
-  if (!node || !node.tag) {
-    return false;
-  }
-
-  if (node.startTagEnd === undefined || node.endTagStart === undefined) {
-    return false;
-  }
-
-  const isContent =
-    offset >= node.startTagEnd && offset <= node.endTagStart;
-
-  if (!isContent) {
-    return false;
-  }
-
-  const tag = node.tag.toLowerCase();
-  return tag === 'script' || tag === 'style';
-}
 
 connection.onInitialize((_params: InitializeParams): InitializeResult => {
   return {
@@ -114,23 +91,59 @@ connection.onCompletion(async (textDocumentPosition) => {
     return null;
   }
 
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   const position = textDocumentPosition.position;
+  const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
+  const offset = document.offsetAt(position);
+  const node = htmlDocument.findNodeAt(offset);
 
-  // Get HTML (and embedded CSS/JS) completions from the HTML language service
+  // Helper: are we inside the content between <tag>...</tag> ?
+  const isInsideNodeContent =
+    node &&
+    typeof node.startTagEnd === 'number' &&
+    typeof node.endTagStart === 'number' &&
+    offset >= node.startTagEnd &&
+    offset <= node.endTagStart;
+
+  const tag = node?.tag?.toLowerCase();
+
+  // --- CSS inside <style> ---
+  if (tag === 'style' && isInsideNodeContent) {
+    // Extract only the CSS text between <style> and </style>
+    const cssText = document
+      .getText()
+      .substring(node!.startTagEnd!, node!.endTagStart!);
+
+    // Create a virtual CSS document
+    const cssDocument = TextDocument.create(
+      document.uri + '.css',
+      'css',
+      document.version,
+      cssText
+    );
+
+    // Map current offset into the CSS snippet
+    const cssOffset = offset - node!.startTagEnd!;
+    const cssPosition = cssDocument.positionAt(cssOffset);
+
+    const stylesheet = cssLanguageService.parseStylesheet(cssDocument);
+    return cssLanguageService.doComplete(cssDocument, cssPosition, stylesheet);
+  }
+
+  // --- JavaScript inside <script> ---
+  if (tag === 'script' && isInsideNodeContent) {
+    // Do NOT provide completions here – let your JS/TS tooling handle it
+    // (e.g., Monaco's built-in JS language service).
+    return null;
+  }
+
+  // --- Pure HTML region: HTML completions + Emmet ---
   const htmlCompletions = htmlLanguageService.doComplete(
     document,
     position,
     htmlDocument
   );
 
-  // If we are inside <script> or <style>, do NOT trigger Emmet.
-  // Let the built-in embedded language logic handle CSS/JS instead.
-  if (isInsideScriptOrStyle(document, position, htmlDocument)) {
-    return htmlCompletions;
-  }
-
-  // Get Emmet completions for pure HTML context
+  // Only run Emmet in HTML (not in <style>/<script>)
   const emmetCompletions = getEmmetCompletions(
     document,
     position,
@@ -138,7 +151,6 @@ connection.onCompletion(async (textDocumentPosition) => {
     emmetConfig
   );
 
-  // Merge completions
   if (emmetCompletions && emmetCompletions.items.length > 0) {
     const mergedItems = [
       ...(htmlCompletions?.items || []),
