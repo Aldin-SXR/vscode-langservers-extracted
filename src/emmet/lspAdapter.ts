@@ -243,11 +243,11 @@ function monacoToLspCompletionItem(
 
 /**
  * Map Monaco CompletionItemKind to LSP CompletionItemKind
- * Force Emmet completions to use Snippet icon
+ * Use Interface icon (8) for Emmet completions (wrench icon)
  */
 function mapMonacoKindToLsp(monacoKind: number): CompletionItemKind {
-  // Use Snippet icon (15) for Emmet abbreviations instead of Property (9)
-  return 15 as CompletionItemKind; // CompletionItemKind.Snippet
+  // Use Interface icon (8) for Emmet abbreviations (wrench icon in VSCode)
+  return 8 as CompletionItemKind; // CompletionItemKind.Interface
 }
 
 /**
@@ -330,7 +330,7 @@ export function getEmmetCompletions(
     );
 
     return {
-      isIncomplete: false,
+      isIncomplete: true, // Keep re-requesting as user types for dynamic abbreviations
       items,
     };
   } catch (error) {

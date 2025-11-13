@@ -16,6 +16,8 @@ import { HTMLDocumentRegions } from './embeddedSupport';
 import * as ts from 'typescript';
 import { getSemanticTokens, getSemanticTokenLegend } from './javascriptSemanticTokens';
 
+type HTMLServerCompletionItem = CompletionItem & { uri: string; position: Position };
+
 const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
 
 function getLanguageServiceHost(scriptKind: ts.ScriptKind) {
@@ -104,6 +106,8 @@ const ignoredErrors = [
 	2792, /* Cannot_find_module_0_Did_you_mean_to_set_the_moduleResolution_option_to_node_or_to_add_aliases_to_the_paths_option */
 ];
 
+const MAX_PREFETCHED_COMPLETION_DETAILS = 40;
+
 export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocumentRegions>, languageId: 'javascript' | 'typescript', workspace: Workspace): LanguageMode {
 	const jsDocuments = getLanguageModelCache<TextDocument>(10, 60, document => documentRegions.get(document).getEmbeddedDocument(languageId));
 
@@ -147,36 +151,58 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 				return { isIncomplete: false, items: [] };
 			}
 			const replaceRange = convertRange(jsDocument, getWordAtText(jsDocument.getText(), offset, JS_WORD_REGEX));
+			const maxItemsWithDetails = Math.min(MAX_PREFETCHED_COMPLETION_DETAILS, completions.entries.length);
+			const items: HTMLServerCompletionItem[] = completions.entries.map((entry, index) => {
+				const data: CompletionItemData = { // data used for resolving item details (see 'doResolve')
+					languageId,
+					uri: document.uri,
+					offset: offset,
+					entrySource: entry.source,
+					entryData: entry.data
+				};
+				const item: HTMLServerCompletionItem = {
+					uri: document.uri,
+					position: position,
+					label: entry.name,
+					sortText: entry.sortText,
+					kind: convertKind(entry.kind),
+					textEdit: TextEdit.replace(replaceRange, entry.name),
+					data
+				};
+				if (index < maxItemsWithDetails) {
+					const details = jsLanguageService.getCompletionEntryDetails(jsDocument.uri, offset, entry.name, undefined, entry.source, undefined, entry.data);
+					if (details) {
+						const detailText = ts.displayPartsToString(details.displayParts);
+						if (detailText) {
+							item.detail = detailText;
+						}
+						const documentationText = ts.displayPartsToString(details.documentation);
+						if (documentationText) {
+							item.documentation = documentationText;
+						}
+					}
+				}
+				return item;
+			});
 			return {
 				isIncomplete: false,
-				items: completions.entries.map(entry => {
-					const data: CompletionItemData = { // data used for resolving item details (see 'doResolve')
-						languageId,
-						uri: document.uri,
-						offset: offset
-					};
-					return {
-						uri: document.uri,
-						position: position,
-						label: entry.name,
-						sortText: entry.sortText,
-						kind: convertKind(entry.kind),
-						textEdit: TextEdit.replace(replaceRange, entry.name),
-						data
-					};
-				})
+				items
 			};
 		},
 		async doResolve(document: TextDocument, item: CompletionItem): Promise<CompletionItem> {
 			if (isCompletionItemData(item.data)) {
+				if (item.detail && item.documentation) {
+					delete item.data;
+					return item;
+				}
 				const jsDocument = jsDocuments.get(document);
 				const jsLanguageService = await host.getLanguageService(jsDocument);
-				const details = jsLanguageService.getCompletionEntryDetails(jsDocument.uri, item.data.offset, item.label, undefined, undefined, undefined, undefined);
+				const details = jsLanguageService.getCompletionEntryDetails(jsDocument.uri, item.data.offset, item.label, undefined, item.data.entrySource, undefined, item.data.entryData);
 				if (details) {
 					item.detail = ts.displayPartsToString(details.displayParts);
 					item.documentation = ts.displayPartsToString(details.documentation);
-					delete item.data;
 				}
+				delete item.data;
 			}
 			return item;
 		},

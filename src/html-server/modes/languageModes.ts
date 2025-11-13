@@ -22,6 +22,7 @@ import { getDocumentRegions, HTMLDocumentRegions } from './embeddedSupport';
 import { getHTMLMode } from './htmlMode';
 import { getJavaScriptMode } from './javascriptMode';
 import { FileSystemProvider } from '../requests';
+import type * as ts from 'typescript';
 
 export {
 	WorkspaceFolder, CompletionItem, CompletionList, CompletionItemKind, Definition, Diagnostic, DocumentHighlight, DocumentHighlightKind,
@@ -59,6 +60,8 @@ export type CompletionItemData = {
 	languageId: string;
 	uri: string;
 	offset: number;
+	entrySource?: string;
+	entryData?: ts.CompletionEntryData;
 };
 
 export function isCompletionItemData(value: any): value is CompletionItemData {

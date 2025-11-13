@@ -2,6 +2,7 @@ import { DocumentContext, IHTMLDataProvider, ClientCapabilities } from 'vscode-h
 import { SelectionRange, CompletionItem, CompletionList, Definition, Diagnostic, DocumentHighlight, DocumentLink, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextEdit, Color, ColorInformation, ColorPresentation, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver';
 import { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 import { FileSystemProvider } from '../requests';
+import type * as ts from 'typescript';
 export { WorkspaceFolder, CompletionItem, CompletionList, CompletionItemKind, Definition, Diagnostic, DocumentHighlight, DocumentHighlightKind, DocumentLink, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, SymbolKind, TextEdit, Color, ColorInformation, ColorPresentation, WorkspaceEdit, SignatureInformation, ParameterInformation, DiagnosticSeverity, SelectionRange, TextDocumentIdentifier } from 'vscode-languageserver';
 export { ClientCapabilities, DocumentContext, LanguageService, HTMLDocument, HTMLFormatConfiguration, TokenType } from 'vscode-html-languageservice';
 export { TextDocument, DocumentUri } from 'vscode-languageserver-textdocument';
@@ -25,6 +26,8 @@ export type CompletionItemData = {
     languageId: string;
     uri: string;
     offset: number;
+    entrySource?: string;
+    entryData?: ts.CompletionEntryData;
 };
 export declare function isCompletionItemData(value: any): value is CompletionItemData;
 export interface LanguageMode {
