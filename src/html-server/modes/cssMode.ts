@@ -18,7 +18,7 @@ export function getCSSMode(cssLanguageService: CSSLanguageService, documentRegio
 		},
 		async doValidation(document: TextDocument, settings = workspace.settings) {
 			const embedded = embeddedCSSDocuments.get(document);
-			return (cssLanguageService.doValidation(embedded, cssStylesheets.get(embedded), settings?.css) as Diagnostic[]);
+			return (cssLanguageService.doValidation(embedded, cssStylesheets.get(embedded), settings?.css || {}) as Diagnostic[]);
 		},
 		async doComplete(document: TextDocument, position: Position, documentContext: DocumentContext, _settings = workspace.settings) {
 			const embedded = embeddedCSSDocuments.get(document);
