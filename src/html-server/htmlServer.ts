@@ -32,6 +32,36 @@ const emmetConfig: VSCodeEmmetConfig = {
   showSuggestionsAsSnippets: false,
 };
 
+/**
+ * Helper: check if the position is inside the content of a <script> or <style> tag.
+ * We only want Emmet in "pure" HTML, not in embedded CSS/JS.
+ */
+function isInsideScriptOrStyle(
+  document: TextDocument,
+  position: { line: number; character: number },
+  htmlDocument: htmlService.HTMLDocument
+): boolean {
+  const offset = document.offsetAt(position);
+  const node = htmlDocument.findNodeAt(offset);
+  if (!node || !node.tag) {
+    return false;
+  }
+
+  if (node.startTagEnd === undefined || node.endTagStart === undefined) {
+    return false;
+  }
+
+  const isContent =
+    offset >= node.startTagEnd && offset <= node.endTagStart;
+
+  if (!isContent) {
+    return false;
+  }
+
+  const tag = node.tag.toLowerCase();
+  return tag === 'script' || tag === 'style';
+}
+
 connection.onInitialize((_params: InitializeParams): InitializeResult => {
   return {
     capabilities: {
@@ -87,14 +117,20 @@ connection.onCompletion(async (textDocumentPosition) => {
   const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   const position = textDocumentPosition.position;
 
-  // Get HTML completions
+  // Get HTML (and embedded CSS/JS) completions from the HTML language service
   const htmlCompletions = htmlLanguageService.doComplete(
     document,
     position,
     htmlDocument
   );
 
-  // Get Emmet completions
+  // If we are inside <script> or <style>, do NOT trigger Emmet.
+  // Let the built-in embedded language logic handle CSS/JS instead.
+  if (isInsideScriptOrStyle(document, position, htmlDocument)) {
+    return htmlCompletions;
+  }
+
+  // Get Emmet completions for pure HTML context
   const emmetCompletions = getEmmetCompletions(
     document,
     position,
@@ -171,9 +207,6 @@ connection.onDocumentSymbol((params) => {
   const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   return htmlLanguageService.findDocumentSymbols(document, htmlDocument);
 });
-
-// Note: findDefinition and findReferences are not available in vscode-html-languageservice
-// These features are typically not needed for HTML
 
 // Handle rename requests
 connection.onRenameRequest((params) => {
