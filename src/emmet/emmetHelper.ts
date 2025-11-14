@@ -43,7 +43,7 @@ const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.\{]/
 // take off { for jsx because it interferes with the language
 const jsxAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/
-const htmlAbbreviationRegex = /[a-z,A-Z\.]/
+const htmlAbbreviationRegex = /[0-9,a-z,A-Z\.]/
 const commonlyUsedTags = [...htmlData.tags, 'lorem']
 const bemFilterSuffix = 'bem'
 const filterDelimitor = '|'
