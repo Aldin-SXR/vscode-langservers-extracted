@@ -21,7 +21,19 @@ type HTMLServerCompletionItem = CompletionItem & { uri: string; position: Positi
 const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
 
 function getLanguageServiceHost(scriptKind: ts.ScriptKind) {
-	const compilerOptions: ts.CompilerOptions = { allowNonTsExtensions: true, allowJs: true, lib: ['lib.es2020.full.d.ts'], target: ts.ScriptTarget.Latest, moduleResolution: ts.ModuleResolutionKind.Classic, experimentalDecorators: false };
+	const compilerOptions: ts.CompilerOptions = {
+		allowNonTsExtensions: true,
+		allowJs: true,
+		lib: [
+			'lib.dom.d.ts',
+			'lib.dom.iterable.d.ts',
+			'lib.dom.asynciterable.d.ts',
+			'lib.es2020.full.d.ts'
+		],
+		target: ts.ScriptTarget.Latest,
+		moduleResolution: ts.ModuleResolutionKind.Classic,
+		experimentalDecorators: false
+	};
 
 	let currentTextDocument = TextDocument.create('init', 'javascript', 1, '');
 	const jsLanguageService = import(/* webpackChunkName: "javascriptLibs" */ './javascriptLibs.js').then(libs => {
@@ -147,29 +159,38 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 			const jsLanguageService = await host.getLanguageService(jsDocument);
 			const offset = jsDocument.offsetAt(position);
 			const completions = jsLanguageService.getCompletionsAtPosition(jsDocument.uri, offset, { includeExternalModuleExports: false, includeInsertTextCompletions: false });
-			if (!completions) {
-				return { isIncomplete: false, items: [] };
-			}
-			const replaceRange = convertRange(jsDocument, getWordAtText(jsDocument.getText(), offset, JS_WORD_REGEX));
+				if (!completions) {
+					return { isIncomplete: false, items: [] };
+				}
+
+				const documentText = jsDocument.getText();
+				const replaceRange = convertRange(jsDocument, getWordAtText(documentText, offset, JS_WORD_REGEX));
+				const replaceRangeOffset = jsDocument.offsetAt(replaceRange.start);
+				const prioritizeMemberCompletions = isAfterPropertyAccess(documentText, replaceRangeOffset);
 			const maxItemsWithDetails = Math.min(MAX_PREFETCHED_COMPLETION_DETAILS, completions.entries.length);
 			const items: HTMLServerCompletionItem[] = completions.entries.map((entry, index) => {
-				const data: CompletionItemData = { // data used for resolving item details (see 'doResolve')
-					languageId,
-					uri: document.uri,
-					offset: offset,
-					entrySource: entry.source,
-					entryData: entry.data
-				};
-				const baseKind = entry.kind ? convertKind(entry.kind) : CompletionItemKind.Property;
-				const item: HTMLServerCompletionItem = {
-					uri: document.uri,
-					position: position,
-					label: entry.name,
-					sortText: entry.sortText,
-					kind: baseKind,
-					textEdit: TextEdit.replace(replaceRange, entry.name),
-					data
-				};
+					const data: CompletionItemData = { // data used for resolving item details (see 'doResolve')
+						languageId,
+						uri: document.uri,
+						offset: offset,
+						entrySource: entry.source,
+						entryData: entry.data
+					};
+					const baseKind = entry.kind ? convertKind(entry.kind) : CompletionItemKind.Property;
+					const baseSortText = entry.sortText ?? entry.name;
+					const item: HTMLServerCompletionItem = {
+						uri: document.uri,
+						position: position,
+						label: entry.name,
+						sortText: baseSortText,
+						kind: baseKind,
+						textEdit: TextEdit.replace(replaceRange, entry.name),
+						data
+					};
+					if (prioritizeMemberCompletions) {
+						const prioritizedSortText = item.sortText ?? entry.name;
+						item.sortText = prioritizedSortText ? `0_${prioritizedSortText}` : '0';
+					}
 				if (index < maxItemsWithDetails) {
 					const details = jsLanguageService.getCompletionEntryDetails(jsDocument.uri, offset, entry.name, undefined, entry.source, undefined, entry.data);
 					if (details) {
@@ -480,6 +501,22 @@ function convertRange(document: TextDocument, span: { start: number | undefined;
 	const startPosition = document.positionAt(span.start);
 	const endPosition = document.positionAt(span.start + (span.length || 0));
 	return Range.create(startPosition, endPosition);
+}
+
+function isAfterPropertyAccess(text: string, offset: number): boolean {
+	let i = offset - 1;
+	while (i >= 0) {
+		const ch = text.charAt(i);
+		if (ch === '.') {
+			return true;
+		}
+		if (ch === ' ' || ch === '\t' || ch === '\r' || ch === '\n') {
+			i--;
+			continue;
+		}
+		break;
+	}
+	return false;
 }
 
 function convertKind(kind: string): CompletionItemKind {
