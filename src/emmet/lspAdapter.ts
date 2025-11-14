@@ -218,7 +218,7 @@ function monacoToLspCompletionItem(
 ): CompletionItem {
   const item: CompletionItem = {
     label: monacoItem.label,
-    kind: CompletionItemKind.Interface,
+    kind: CompletionItemKind.Property,
     detail: monacoItem.detail,
     documentation: monacoItem.documentation,
     insertTextFormat: monacoItem.insertTextRules === 4

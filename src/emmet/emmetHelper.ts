@@ -133,7 +133,7 @@ export function doComplete(
     }
 
     expandedAbbr = {
-      kind: monaco.languages.CompletionItemKind.Interface,
+      kind: monaco.languages.CompletionItemKind.Property,
       label: abbreviation + (filter ? '|' + filter.replace(',', '|') : ''),
       documentation: replaceTabStopsWithCursors(expandedText),
       detail: 'Emmet abbreviation',
@@ -286,7 +286,7 @@ function makeSnippetSuggestion(
     }
 
     const item: CompletionItem = {
-      kind: monaco.languages.CompletionItemKind.Interface,
+      kind: monaco.languages.CompletionItemKind.Property,
       label: prefix + snippetKey.substr(prefix.length),
       documentation: replaceTabStopsWithCursors(expandedAbbr),
       detail: snippetDetail,
