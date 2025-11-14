@@ -227,10 +227,9 @@ function monacoToLspCompletionItem(
 
   if (typeof monacoItem.documentation === 'string' && monacoItem.documentation.length) {
     const documentation = monacoItem.documentation.replace(/\s+$/g, '');
-    const multiLine = documentation.includes('\n');
     item.documentation = {
       kind: MarkupKind.Markdown,
-      value: multiLine ? ['```', documentation, '```'].join('\n') : documentation,
+      value: ['```', documentation, '```'].join('\n'),
     };
   } else if (monacoItem.documentation) {
     item.documentation = monacoItem.documentation;
