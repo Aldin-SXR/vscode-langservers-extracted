@@ -164,8 +164,9 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 				}
 
 				const documentText = jsDocument.getText();
-				const replaceRange = convertRange(jsDocument, getWordAtText(documentText, offset, JS_WORD_REGEX));
-				const replaceRangeOffset = jsDocument.offsetAt(replaceRange.start);
+				const currentWord = getWordAtText(documentText, offset, JS_WORD_REGEX);
+				const replaceRange = convertRange(jsDocument, currentWord);
+				const replaceRangeOffset = currentWord.start;
 				const prioritizeMemberCompletions = isAfterPropertyAccess(documentText, replaceRangeOffset);
 			const maxItemsWithDetails = Math.min(MAX_PREFETCHED_COMPLETION_DETAILS, completions.entries.length);
 			const items: HTMLServerCompletionItem[] = completions.entries.map((entry, index) => {
@@ -189,7 +190,8 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 					};
 					if (prioritizeMemberCompletions) {
 						const prioritizedSortText = item.sortText ?? entry.name;
-						item.sortText = prioritizedSortText ? `0_${prioritizedSortText}` : '0';
+						const prefix = isMemberCompletionKind(entry.kind) ? '0_' : '1_';
+						item.sortText = prioritizedSortText ? `${prefix}${prioritizedSortText}` : prefix.slice(0, 1);
 					}
 				if (index < maxItemsWithDetails) {
 					const details = jsLanguageService.getCompletionEntryDetails(jsDocument.uri, offset, entry.name, undefined, entry.source, undefined, entry.data);
@@ -517,6 +519,21 @@ function isAfterPropertyAccess(text: string, offset: number): boolean {
 		break;
 	}
 	return false;
+}
+
+function isMemberCompletionKind(kind: string | undefined): boolean {
+	switch (kind) {
+		case Kind.memberVariable:
+		case Kind.memberGetAccessor:
+		case Kind.memberSetAccessor:
+		case Kind.method:
+		case Kind.constructSignature:
+		case Kind.callSignature:
+		case Kind.indexSignature:
+			return true;
+		default:
+			return false;
+	}
 }
 
 function convertKind(kind: string): CompletionItemKind {
