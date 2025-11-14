@@ -138,6 +138,7 @@ export function doComplete(
       documentation: replaceTabStopsWithCursors(expandedText),
       detail: 'Emmet abbreviation',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+      filterText: abbreviation,
       range: abbreviationRange,
       insertText: escapeNonTabStopDollar(addFinalTabStop(expandedText)),
     }
