@@ -42,25 +42,22 @@ export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace:
 
 				const htmlItems = completionList?.items || [];
 				htmlItems.forEach(item => {
-					if (!item.sortText) {
-						const base = item.kind === CompletionItemKind.Text ? '9' : '1';
-						item.sortText = `${base}_${item.label}`;
+					if (!item.sortText && item.kind === CompletionItemKind.Text) {
+						// Push word-based suggestions after structured completions
+						item.sortText = `z_${item.label}`;
 					}
 				});
 
 				if (emmetCompletions && emmetCompletions.items.length > 0) {
-					// Highest priority for Emmet, but keep attribute items ahead of word-based by sortText
-					emmetCompletions.items.forEach((item, index) => {
-						item.sortText = `0_emmet_${index}`;
-					});
-
 					const mergedItems = [
-						...htmlItems,
 						...emmetCompletions.items,
+						...htmlItems,
 					];
 
+					const isIncomplete = (completionList?.isIncomplete ?? false) || (emmetCompletions.isIncomplete ?? false);
+
 					return {
-						isIncomplete: true, // Trigger re-request as user types
+						isIncomplete,
 						items: mergedItems,
 					};
 				}
