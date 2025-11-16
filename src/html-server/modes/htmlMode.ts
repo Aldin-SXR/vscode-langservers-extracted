@@ -8,8 +8,9 @@ import {
 	LanguageService as HTMLLanguageService, HTMLDocument, DocumentContext, FormattingOptions,
 	HTMLFormatConfiguration, SelectionRange,
 	TextDocument, Position, Range, FoldingRange,
-	LanguageMode, Workspace, Settings, CompletionItemKind
+	LanguageMode, Workspace, Settings, CompletionItemKind, TokenType
 } from './languageModes';
+import { ScannerState } from 'vscode-html-languageservice';
 import { getEmmetCompletions, VSCodeEmmetConfig } from '../../emmet/lspAdapter';
 
 export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace: Workspace): LanguageMode {
@@ -23,20 +24,21 @@ export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace:
 		},
 		async doComplete(document: TextDocument, position: Position, documentContext: DocumentContext, settings = workspace.settings) {
 			const htmlSettings = settings?.html;
-			const options = merge(htmlSettings?.suggest, {});
-			options.hideAutoCompleteProposals = htmlSettings?.autoClosingTags === true;
-			options.attributeDefaultValue = htmlSettings?.completion?.attributeDefaultValue ?? 'doublequotes';
+				const options = merge(htmlSettings?.suggest, {});
+				options.hideAutoCompleteProposals = htmlSettings?.autoClosingTags === true;
+				options.attributeDefaultValue = htmlSettings?.completion?.attributeDefaultValue ?? 'doublequotes';
 
-			const htmlDocument = htmlDocuments.get(document);
-			const completionList = await htmlLanguageService.doComplete2(document, position, htmlDocument, documentContext, options);
+				const htmlDocument = htmlDocuments.get(document);
+				const completionList = await htmlLanguageService.doComplete2(document, position, htmlDocument, documentContext, options);
 
-			// Add Emmet completions
-			const emmetConfig: VSCodeEmmetConfig = {
-				showExpandedAbbreviation: 'always',
-				showAbbreviationSuggestions: true,
-				showSuggestionsAsSnippets: false,
-			};
-				const emmetCompletions = getEmmetCompletions(document, position, 'html', emmetConfig);
+				// Add Emmet completions
+				const emmetConfig: VSCodeEmmetConfig = {
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: true,
+					showSuggestionsAsSnippets: false,
+				};
+				const allowEmmet = !isInsideStartTag(document, position, htmlLanguageService);
+				const emmetCompletions = allowEmmet ? getEmmetCompletions(document, position, 'html', emmetConfig) : undefined;
 
 				const htmlItems = completionList?.items || [];
 				htmlItems.forEach(item => {
@@ -130,6 +132,22 @@ export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace:
 		htmlDocuments.dispose();
 	}
 };
+}
+
+function isInsideStartTag(document: TextDocument, position: Position, htmlLanguageService: HTMLLanguageService): boolean {
+	const offset = document.offsetAt(position);
+	const scanner = htmlLanguageService.createScanner(document.getText());
+	let token = scanner.scan();
+
+	while (token !== undefined && token !== null && token !== TokenType.EOS) {
+		if (scanner.getTokenEnd() >= offset) {
+			const state = scanner.getScannerState();
+			return state === ScannerState.AfterOpeningStartTag || state === ScannerState.WithinTag || state === ScannerState.AfterAttributeName || state === ScannerState.BeforeAttributeValue;
+		}
+		token = scanner.scan();
+	}
+
+	return false;
 }
 
 function merge(src: any, dst: any): any {
