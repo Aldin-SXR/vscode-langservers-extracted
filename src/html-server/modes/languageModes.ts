@@ -124,7 +124,7 @@ export function getLanguageModes(supportedLanguages: { [languageId: string]: boo
 	modelCaches.push(documentRegions);
 
 	let modes = Object.create(null);
-	modes['html'] = getHTMLMode(htmlLanguageService, workspace, cssLanguageService);
+	modes['html'] = getHTMLMode(htmlLanguageService, workspace);
 	if (supportedLanguages['css']) {
 		modes['css'] = getCSSMode(cssLanguageService, documentRegions, workspace);
 	}
