@@ -7,7 +7,7 @@ import {
 	Connection, TextDocuments, InitializeParams, InitializeResult, RequestType,
 	DocumentRangeFormattingRequest, Disposable, ServerCapabilities,
 	ConfigurationRequest, ConfigurationParams, DidChangeWorkspaceFoldersNotification,
-	DocumentColorRequest, ColorPresentationRequest, TextDocumentSyncKind, NotificationType, RequestType0, DocumentFormattingRequest, FormattingOptions, TextEdit, TextDocumentContentRequest
+	DocumentColorRequest, ColorPresentationRequest, TextDocumentSyncKind, NotificationType, RequestType0, DocumentFormattingRequest, FormattingOptions, TextEdit, TextDocumentContentRequest, ClientCapabilities, MarkupKind
 } from 'vscode-languageserver';
 import {
 	getLanguageModes, LanguageModes, Settings, TextDocument, Position, Diagnostic, WorkspaceFolder, ColorInformation,
@@ -130,10 +130,29 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		return Promise.resolve(undefined);
 	}
 
+	function withMarkdownIfUnsupported(capabilities: ClientCapabilities): ClientCapabilities {
+		const result: ClientCapabilities = { ...capabilities };
+		const textDocument = result.textDocument = { ...result.textDocument };
+
+		const hover = textDocument.hover = { ...textDocument.hover };
+		if (!hover.contentFormat || hover.contentFormat.length === 0) {
+			hover.contentFormat = [MarkupKind.Markdown, MarkupKind.PlainText];
+		}
+
+		const completion = textDocument.completion = { ...textDocument.completion };
+		const completionItem = completion.completionItem = { ...completion.completionItem };
+		if (!completionItem.documentationFormat || completionItem.documentationFormat.length === 0) {
+			completionItem.documentationFormat = [MarkupKind.Markdown, MarkupKind.PlainText];
+		}
+
+		return result;
+	}
+
 	// After the server has started the client sends an initialize request. The server receives
 	// in the passed params the rootPath of the workspace plus the client capabilities
 	connection.onInitialize((params: InitializeParams): InitializeResult => {
 		const initializationOptions = params.initializationOptions || {};
+		const clientCapabilities = withMarkdownIfUnsupported(params.capabilities);
 
 		if (!Array.isArray(params.workspaceFolders)) {
 			workspaceFolders = [];
@@ -153,7 +172,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 			get folders() { return workspaceFolders; }
 		};
 
-		languageModes = getLanguageModes(initializationOptions?.embeddedLanguages || { css: true, javascript: true }, workspace, params.capabilities, fileSystemProvider);
+		languageModes = getLanguageModes(initializationOptions?.embeddedLanguages || { css: true, javascript: true }, workspace, clientCapabilities, fileSystemProvider);
 
 		const dataPaths: string[] = initializationOptions?.dataPaths || [];
 		fetchHTMLDataProviders(dataPaths, customDataRequestService).then(dataProviders => {
@@ -169,7 +188,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 		function getClientCapability<T>(name: string, def: T) {
 			const keys = name.split('.');
-			let c: any = params.capabilities;
+			let c: any = clientCapabilities;
 			for (let i = 0; c && i < keys.length; i++) {
 				if (!c.hasOwnProperty(keys[i])) {
 					return def;

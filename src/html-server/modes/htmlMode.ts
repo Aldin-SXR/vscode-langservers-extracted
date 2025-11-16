@@ -8,11 +8,12 @@ import {
 	LanguageService as HTMLLanguageService, HTMLDocument, DocumentContext, FormattingOptions,
 	HTMLFormatConfiguration, SelectionRange,
 	TextDocument, Position, Range, FoldingRange,
-	LanguageMode, Workspace, Settings
+	LanguageMode, Workspace, Settings, ColorInformation, ColorPresentation, Color, TokenType
 } from './languageModes';
+import { LanguageService as CSSLanguageService } from 'vscode-css-languageservice';
 import { getEmmetCompletions, VSCodeEmmetConfig } from '../../emmet/lspAdapter';
 
-export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace: Workspace): LanguageMode {
+export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace: Workspace, cssLanguageService?: CSSLanguageService): LanguageMode {
 	const htmlDocuments = getLanguageModelCache<HTMLDocument>(10, 60, document => htmlLanguageService.parseHTMLDocument(document));
 	return {
 		getId() {
@@ -75,6 +76,18 @@ export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace:
 		async findDocumentSymbols(document: TextDocument) {
 			return htmlLanguageService.findDocumentSymbols(document, htmlDocuments.get(document));
 		},
+		async findDocumentColors(document: TextDocument) {
+			if (!cssLanguageService) {
+				return [];
+			}
+			return findHTMLDocumentColors(document, htmlLanguageService, cssLanguageService);
+		},
+		async getColorPresentations(document: TextDocument, color: Color, range: Range) {
+			if (!cssLanguageService) {
+				return [];
+			}
+			return getHTMLColorPresentations(document, color, range, cssLanguageService);
+		},
 		async format(document: TextDocument, range: Range, formatParams: FormattingOptions, settings = workspace.settings) {
 			const formatSettings: HTMLFormatConfiguration = merge(settings?.html?.format, {});
 			if (formatSettings.contentUnformatted) {
@@ -125,6 +138,106 @@ export function getHTMLMode(htmlLanguageService: HTMLLanguageService, workspace:
 			htmlDocuments.dispose();
 		}
 	};
+}
+
+const colorAttributes = new Set([
+	'color',
+	'bgcolor',
+	'bordercolor',
+	'alink',
+	'link',
+	'vlink',
+	'text',
+	'stroke',
+	'fill',
+	'stop-color',
+	'flood-color',
+	'lighting-color'
+]);
+
+function findHTMLDocumentColors(document: TextDocument, htmlLanguageService: HTMLLanguageService, cssLanguageService: CSSLanguageService): ColorInformation[] {
+	const scanner = htmlLanguageService.createScanner(document.getText());
+	const colors: ColorInformation[] = [];
+	let token = scanner.scan();
+	let currentAttributeName: string | null = null;
+
+	while (token !== TokenType.EOS) {
+		switch (token) {
+			case TokenType.AttributeName:
+				currentAttributeName = scanner.getTokenText().toLowerCase();
+				break;
+			case TokenType.AttributeValue: {
+				const attributeName = currentAttributeName;
+				currentAttributeName = null;
+				if (!attributeName || !isColorAttribute(attributeName)) {
+					break;
+				}
+				const value = getUnquotedAttributeValue(document, scanner);
+				if (!value) {
+					break;
+				}
+				const color = parseCSSColor(value.value, cssLanguageService);
+				if (color) {
+					colors.push({ color, range: value.range });
+				}
+				break;
+			}
+			default:
+				break;
+		}
+		token = scanner.scan();
+	}
+
+	return colors;
+}
+
+function getHTMLColorPresentations(document: TextDocument, color: Color, range: Range, cssLanguageService: CSSLanguageService): ColorPresentation[] {
+	const attributeColorValue = document.getText(range);
+	const prefix = '* { color: ';
+	const cssDocument = TextDocument.create('color://html-attribute.css', 'css', 0, `${prefix}${attributeColorValue}; }`);
+	const stylesheet = cssLanguageService.parseStylesheet(cssDocument);
+	const colorRange = Range.create(Position.create(0, prefix.length), Position.create(0, prefix.length + attributeColorValue.length));
+	return cssLanguageService.getColorPresentations(cssDocument, stylesheet, color, colorRange);
+}
+
+function getUnquotedAttributeValue(document: TextDocument, scanner: ReturnType<HTMLLanguageService['createScanner']>): { value: string; range: Range } | null {
+	const text = document.getText();
+	let start = scanner.getTokenOffset();
+	let end = scanner.getTokenEnd();
+
+	if (start >= end) {
+		return null;
+	}
+
+	if (text[start] === '"' || text[start] === '\'') {
+		start++;
+		end--;
+	}
+
+	while (start < end && /\s/.test(text[start])) {
+		start++;
+	}
+	while (end > start && /\s/.test(text[end - 1])) {
+		end--;
+	}
+
+	if (start >= end) {
+		return null;
+	}
+
+	const range = Range.create(document.positionAt(start), document.positionAt(end));
+	return { value: text.substring(start, end), range };
+}
+
+function parseCSSColor(value: string, cssLanguageService: CSSLanguageService): Color | null {
+	const cssDocument = TextDocument.create('color://html-attribute.css', 'css', 0, `* { color: ${value}; }`);
+	const stylesheet = cssLanguageService.parseStylesheet(cssDocument);
+	const colors = cssLanguageService.findDocumentColors(cssDocument, stylesheet);
+	return colors.length ? colors[0].color : null;
+}
+
+function isColorAttribute(attributeName: string): boolean {
+	return colorAttributes.has(attributeName) || attributeName.endsWith('color');
 }
 
 function merge(src: any, dst: any): any {
